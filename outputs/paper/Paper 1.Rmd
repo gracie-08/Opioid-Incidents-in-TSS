@@ -1,0 +1,204 @@
+---
+title: "Reports of Suspected Non-Fatal Opioid Overdose Incidents Are Limited"
+author: "Yandrickx Dumalag"
+date: '2022-02-06'
+output: pdf_document
+
+abstract: "COVID-19 measures exacerbated the circumstances from which the opioid crisis thrived. Decreased capacities in Toronto’s Shelter Systems and the fear of contracting the virus from cramped facilities have pushed individuals experiencing homelessness to seek refuge on the streets instead. Data on the suspected non-fatal opioid overdoses consequently is inconclusive of incidents that may have happened on the streets and is not representative of the prevalence of opioid overdoses in Toronto. Nonetheless, analysis on the fatal and non-fatal incidents of opioid overdoses are still showing upward trends, with an increase with more than 1000 incidents reported in 2021. Many shelter locations face the burden of reporting such incidents with a shelter reporting 46 incidents of suspected non-fatal opioid overdose in just one quarter of 2021. More data needs to be collected beyond the confines of the shelter system and needs to be more accurate in collecting data that is suspected for non-fatal incidents."
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+install.packages("opendatatoronto")
+install.packages("lubridate")
+install.packages("knitr")
+install.packages("janitor")
+install.packages("tidyverse")
+install.packages("tidyr")
+
+library(knitr)
+library(janitor)
+library(lubridate)
+library(opendatatoronto)
+library(tidyverse)
+library(tidyr)
+```
+
+# 1 Introduction
+
+Opioids are prescribed painkillers that increase a patient’s pain tolerance. Although it can be effective when under medical supervision, opioids are also produced and consumed non-medically and in unsafe environments that may lead to overdose incidents. Over the past decade, the opioid crisis in Canada has alarmingly escalated, with more than 2800 opioid-related deaths in 2016 (Gomes et al., 2018). The province of British Columbia alone declared a public health emergency in April of that year for the alarming rise of opioid-related deaths by overdose (Overdose Awareness, 2018). 
+
+Although cases have been rising in opioid-related mortality rates reaching the levels of an epidemic, focus on the opioid crisis has become overshadowed by the COVID-19 pandemic. COVID-19 measures such as social distancing and isolation, along with reduced hours of operations for health services and harm reduction programs, have exacerbated the barriers of access for people with opioid-use disorder (Gomes, Kitchen, and Murray, 2021). Given these factors, a decrease in supply of these drugs make it more likely for individuals to seek illicit opioids that contain lethal synthetic compounds commonly found in street supplies (Tyndall, 2018).
+
+People who are opioid-dependent and experiencing homelessness have a particularly difficult time with these public health crises. During COVID-19, many avoid accessing shelter systems due to the fear of contracting the virus from overcrowding. These leave individuals using opioids to sleep on the streets where they may not have access to safe sanitizing stations and harm reduction supplies, further leaving them vulnerable to overdose incidents (Rezene, 2020). 
+
+Despite these issues, a number of shelter systems continue to report on suspected opioid-related overdose incidents in their facilities to understand the prevalence of opioid-use. Based on the data reported on fatal and non-fatal suspected opioid overdoses Toronto’s shelter system, the goal of this study is to better understand and describe trends and characteristics of opioid-related overdose incidents in shelters across the City of Toronto.^[Code and data are available at: https://github.com/gracie-08/Opioid-Incidents-in-TSS]
+
+
+
+# 2 Data
+
+To better understand opioid-use in Toronto over the past few years, data reported by Open Data Toronto provides a glimpse of fatal and non-fatal suspected opioid overdose incidents in Toronto’s Shelter System (Data, 2021). This dataset concerns individuals that have accessed formal shelters in Toronto and have experienced an overdose incident from the first quarter of 2018 to the last quarter of 2021. 
+
+According to Open Data Toronto from which the dataset was obtained, there are a number of limitations that must be taken into account (Data, 2021). Data on fatal incidents are more accurate due to incidents being identified by the Ontario Office of the Chief Coroner. Non-fatal incidents are suspected and identified by Toronto Paramedic Services that are experts in identifying opioid overdoses from physical and circumstantial information. This dataset does not include information on opioid-related overdose incidents from individuals living in encampments or any incidents beyond Toronto’s Shelter System. Both Toronto Paramedic Services and the Ontario Office of the Chief Coroner reported these incidents according to the address of the shelters from which patients have been taken from to go to the hospital.
+
+Both the summary and the raw data available from Open Data Toronto were utilized in this analysis. The raw data contains information on: shelter name, shelter address, the year the incident occured, which quarter of the year it occurred, the number of fatal incidents, and the number of non-fatal incidents in each shelter. The summary information only included: year, which quarter of the year, suspected non-fatal overdose incidents, and fatal overdose incidents. 
+
+```{r opioid_incidents, echo = FALSE, warning = FALSE}
+opioid_overdoses <-
+  list_package_resources("0d1fb545-d1b2-4e0a-b87f-d8a1835e5d85") |> 
+  filter(row_number()==1) |> 
+  get_resource()
+
+write.csv(
+  x = opioid_overdoses, 
+  file = "opioid_overdoses.csv"
+)
+
+# data cleanup #
+opioid_overdoses_clean <-
+  clean_names(opioid_overdoses) |> 
+  select(id,year, year_stage, suspected_non_fatal_overdoses_incidents, fatal_overdoses_incident)
+
+write_csv(
+  x = opioid_overdoses_clean, 
+  file = "opioid_overdoses_clean.csv"
+)
+
+opioid_overdoses_clean <- 
+  read_csv(
+    "opioid_overdoses_clean.csv",
+    show_col_types = FALSE
+  )
+
+```
+
+Upon accessing this dataset, some preparation was conducted before further analysis. Using R (R Core Team 2020), tidyverse (Wickham et al. 2019), and dplyr (Wickham et al. 2021), data was extracted and cleaned to focus on the number of incidents that occured for particular years and/or quarter of the year, and the specific locations that reported these incidents. 
+
+
+## 2.1 Data Analysis
+
+With four years of data available, Figure 1 focuses on representing the number of non-fatal opioid overdose incidents that occured from 2018-2021. The summary dataset was utilized for this analysis where it aggregated the individual number of opioid incidents reported by the shelters into the quarters of each year. Both the quarterly breakdown and the total yearly breakdown of incidents are represented in this graph to showcase the upwards trend of reported incidents as well as the almost consistent upward trend of incidents for each quarter of the year. As evidenced in this graph, the number of non-fatal opioid overdose incidents reported from the Toronto Shelter Systems have been increasing by around 200-300 incidents each year, with a consistent upward trend for each quarter except for the year of 2019 where the quarters showed a downwards trend but overall higher increase of incidents in total.  
+
+```{r graph1, echo=FALSE}
+
+opioid_overdoses_clean |> 
+  ggplot(mapping = aes(x = year, y = suspected_non_fatal_overdoses_incidents, fill = year_stage, label = suspected_non_fatal_overdoses_incidents)) +
+  geom_bar(stat="identity", position = "dodge") +
+  geom_text(aes(label=suspected_non_fatal_overdoses_incidents), position=position_dodge(width=0.9), vjust=-0.25)+
+  labs(title = "Figure 1: Non-Fatal Opioid Overdoses in Toronto's Shelter System", 
+       x = "Year", 
+       y = "No. of Incidents",
+       fill = "Year Stage") +
+  theme_classic() +
+  scale_fill_brewer(palette = "Set1")
+
+```
+
+Taking the effects of COVID-19 measures into account, the consistent overall increase of suspected non-fatal overdose incidents in Toronto’s Shelter System does not seem to reflect the spike of incidents outside of the formal shelter system. As discussed earlier, many individuals using drugs and experiencing homelessness have stayed away from accessing shelter systems from fear of virus-contraction, and opioid-related non-fatal overdose incidents may have gone unreported. 
+
+Taking a look at 2021’s numbers alone, the fatal and non-fatal incidents are compared for each stage of the year to get a better understanding of the trends that might occur for each quarter (Table 1). Based on this limited view with only three quarters collected for 2021, the number of fatal incidents are relatively fewer than the sheer number of non-fatal overdose incidents. However, according to Open Data Toronto’s explanation of this data set, some fatal incidents and non-fatal incidents may be duplicates of each other because the outcomes of suspected non-fatal overdose incidents are unreported once Toronto Paramedic Services delivers the patients to a hospital. 
+
+
+
+```{r table1, echo = FALSE, warning = FALSE}
+tibble(stage = c("Q1", "Q2", "Q3", "Total"),
+       fatal = c(15,12,19,26),
+       nonfatal = c(297, 313, 427, 1037)
+) |>
+  knitr::kable(
+    caption = "Suspected Opioid Overdose Incidents in Toronto 2021",
+    col.names = c("Stage", "Fatal Incidents", "Non Fatal Incidents"),
+    digits = 1,
+    booktabs = TRUE,
+    linesep = ""
+  )
+
+```
+In non-fatal cases though where Toronto Paramedic Services identifies a suspected opioid-overdose, there are shelter locations from which these individuals are reported from. The top ten shelters that reported the most number of suspected non-fatal opioid-related overdoses in the last reported quarter of 2021 are represented on Table 2. The shelter with the highest number of reported incidents is Homes First Society’s (HFS) The Esplanade location reporting 46 incidents in the 3rd quarter of 2021. HFS Lake Shore and Shelter, Support, and Housing Administration’s (SSHA) Seaton House also have more than 40 reported non-fatal incidents. The Etobicoke Hotel Program and the Scarborough Hotel Program 2 both share the 10th spot for the highest number of non-fatal incidents in Toronto’s Shelter System. 
+
+```{r graph2, echo=FALSE}
+raw_opioid_overdoses <-
+  read.csv("suspected-opioid-overdoses-in-shelters.csv")
+
+write.csv(
+  x = raw_opioid_overdoses, 
+  file = "raw_opioid_overdoses.csv"
+)
+
+raw_opioid_overdoses_clean <-
+  clean_names(raw_opioid_overdoses) |> 
+  select(location_name, year, year_stage, suspected_non_fatal_overdoses)  |>
+  arrange(desc(suspected_non_fatal_overdoses)) |>
+  filter(year == "2021", year_stage == "Q3", suspected_non_fatal_overdoses != "0",
+         suspected_non_fatal_overdoses != "< 5", 
+         suspected_non_fatal_overdoses != "<5",
+         suspected_non_fatal_overdoses != "9",
+         suspected_non_fatal_overdoses != "7",
+         suspected_non_fatal_overdoses != "6",
+         suspected_non_fatal_overdoses != "5") |>
+  drop_na(suspected_non_fatal_overdoses)
+
+write_csv(
+  x = raw_opioid_overdoses_clean, 
+  file = "raw_opioid_overdoses_clean.csv"
+)
+
+raw_opioid_overdoses_clean <- 
+  read_csv(
+    "raw_opioid_overdoses_clean.csv",
+    show_col_types = FALSE
+  )
+
+```
+
+```{r table2, echo = FALSE, warning = FALSE}
+
+tibble(shelter = c("HFS 45 The Esplanade","HFS 545 Lake Shore Blvd W","SSHA Seaton House",
+                   "Dixon Hall Bond Place Hotel Program","St. Felix Centre 69 Fraser Ave Respite",
+                   "HFS Willowdale Centre","HFS 195 Princes' Blvd","Youth Agencies Scarborough Hotel Program",
+                   "HFS - Lawrence East Shelter","COSTI/SSHA Etobicoke Hotel Program",
+                   "SSHA Scarborough Hotel Program 2"),
+       nonfatal = c(46, 42, 42, 36,34,28,24,17,13,10,10)
+) |>
+  knitr::kable(
+    caption = "Shelters with Highest Number of Reported Incidents in the 3rd Quarter of 2021",
+    col.names = c("Shelter", "Non Fatal Incidents"),
+    digits = 1,
+    booktabs = TRUE,
+    linesep = ""
+  )
+
+```
+
+Further analysis can be done on the location of these shelters and their proximity to one another, and whether the concentration of homeless individuals around the area reflect the reported incidents that occur from these reporting shelters. 
+
+
+# 4 Discussion
+
+Upon exploring the data without further performing descriptive and/or inferential statistics, it is readily apparent from this data that there is an upwards trend in opioid-related incidents across the City of Toronto. Within the confines of the Toronto Shelter System and the help of Toronto Paramedic Services and  Ontario Office of the Chief Coroner, there is some data that can paint a snapshot of what individuals experiencing homelessness are going through, especially in relation to the opioid-crisis that is spreading alongside the COVID-19 pandemic. More than 1000 non-fatal incidents have been reported in 2021 and the numbers have been steadily increasing by 200 incidents each year. Fatal overdoses are still relatively low compared to the number of non-fatal incidents reported in 2021, though numbers may have been duplicated between fatal and non-fatal data due to the lack of reporting on health outcomes. Lastly, a number of shelters locations are reporting a higher number of non-fatal incidents in the last quarter of 2021, with the highest having 46 incidents of suspected non-fatal opioid overdose. 
+
+What is unclear from this data is the scope and prevalence of these opioid-related overdose incidents beyond the Toronto Shelter System. Further research needs to be done to relate incidents of suspected non-fatal overdoses across the city with those of the shelter systems. More research on this will shed light on the barriers that individuals experiencing homelessness face and further action that needs to be taken by the Toronto Shelter System to provide access to a safe environment from which individuals can take shelter in while also protecting themselves of the COVID-19 pandemic and the opioid crisis. 
+
+\pagebreak
+
+
+
+# References
+
+Data, Toronto Open. 2021. “Fatal and Non-fatal Suspected Opioid Overdoses in the Data, Toronto Open. 2021. “Fatal and Non-fatal Suspected Opioid Overdoses in the Shelter System.” https://open.toronto.ca/dataset/fatal-and-non-fatal-suspected-opioid-overdoses-in-the-shelter-system/www.toronto.ca/
+
+Gomes, T., Khuu, W., Craiovan, D., Martins, D., Hunt, J., Lee, K., ... & Juurlink, D. N. (2018). Comparing the contribution of prescribed opioids to opioid-related hospitalizations across Canada: A multi-jurisdictional cross-sectional study. Drug and alcohol dependence, 191, 86-90.
+
+Gomes, T., Kitchen, S. A., & Murray, R. (2021). Measuring the burden of opioid-related mortality in Ontario, Canada, during the COVID-19 pandemic. JAMA Network Open, 4(5), e2112865-e2112865.
+
+Overdose Awareness. (2018). The Government of British Columbia. Taken from https://www2.gov.bc.ca/gov/content/overdose/how-the-province-is-responding
+
+Rezene, L. (2020). COVID-19, the Opioid Epidemic and the Housing Crisis. Child & Youth Services, 41(3), 304-306.
+
+R Core Team. 2020. R: A Language and Environment for Statistical Computing. Vienna, Austria: R Foundation for Statistical Computing. https://www.R-project.org/.
+Tyndall, M. (2018). An emergency response to the opioid overdose crisis in Canada: a regulated opioid distribution program. Cmaj, 190(2), E35-E36.
+
+Wickham, Hadley, Mara Averick, Jennifer Bryan, Winston Chang, Lucy D’Agostino McGowan, Romain François, Garrett Grolemund, et al. 2019. “Welcome to the tidyverse.” Journal of Open Source Software 4 (43): 1686. https://doi.org/10.21105/joss.01686.
+Wickham, Hadley, Romain François, Lionel Henry, and Kirill Müller. 2021. Dplyr: A Grammar of Data Manipulation. https://CRAN.R-project.org/package=dplyr.
